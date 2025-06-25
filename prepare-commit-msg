@@ -1,0 +1,14 @@
+#!/bin/bash
+
+echo "Running pre-commit hook for Jira naming..."
+# Get the current branch name and check if it is excluded
+BRANCH_NAME=$(git symbolic-ref --short HEAD)
+
+# Trim it down to get the parts we're interested in
+TRIMMED=$(echo $BRANCH_NAME | sed -e 's:^\([^-]*-[^-]*\)-.*:\1:' -e \
+    'y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/')
+
+# If it isn't excluded, preprend the trimmed branch identifier to the given message
+if [ -n "$BRANCH_NAME" ]; then
+  sed -i.bak -e "1s/^/$TRIMMED /" $1
+fi

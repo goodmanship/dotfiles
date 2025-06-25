@@ -1,0 +1,172 @@
+# Goodmanship's Zephyr config #
+
+add_newline = false
+
+# A minimal left prompt - using three custom modules for conditional coloring
+format = """$python$directory${custom.git_branch_clean}${custom.git_branch_staged}${custom.git_branch_unstaged}$git_status$git_state $character"""
+
+# move the rest of the prompt to the right
+#right_format = """$status$git_branch${custom.git_status_dirty}$git_status"""
+right_format = """$status$cmd_duration"""
+
+palette="wombat"
+
+# Define custom colors
+[palettes.tokyo_night]
+black = '#15161e'
+blue = '#7aa2f7'
+cyan = '#7dcfff'
+green = '#9ece6a'
+orange = '#ff9e64'
+purple = '#bb9af7'
+red = '#f7768e'
+white = '#a9b1d6'
+yellow = '#e0af68'
+
+[palettes.tokyo_night_256]
+black = '16'
+blue = '111'
+cyan = '117'
+green = '149'
+orange = '215'
+purple = '141'
+red = '210'
+white = '146'
+yellow = '179'
+
+[palettes.wombat]
+black = '#000000'
+blue = '#5da9f6'
+cyan = '#82fff7'
+green = '#b1e969'
+orange = '#ff9470'
+purple = '#e86aff'
+red = '#ff615a'
+white = '#dedacf'
+yellow = '#ebd99c'
+
+[palettes.wombat_256]
+black = '0'
+blue = '75'
+cyan = '123'
+green = '149'
+orange = '209'
+purple = '171'
+red = '203'
+white = '188'
+yellow = '223'
+
+[character]
+success_symbol = "[❯](purple)[❯](cyan)"
+error_symbol = "[❯](yellow)[❯](red)"
+
+[python]
+format = '[(\($virtualenv\) )]($style)'
+style = 'white'
+
+[directory]
+style = "blue"
+truncation_length = 1
+truncation_symbol = ""
+fish_style_pwd_dir_length = 1
+
+# Enhanced git branch - background changes based on dirty status
+[git_branch]
+disabled = true
+format = ' [$branch]($style)'
+style = 'bg:green fg:black bold'  # Clean: green background, dark text
+
+# Show commit hash when in detached HEAD state  
+[git_commit]
+disabled = true
+format = ' [➦ $hash]($style)'
+style = 'bg:yellow fg:black bold'  # Detached HEAD: yellow background, dark text
+commit_hash_length = 7
+only_detached = true
+
+# Show special git states (merging, rebasing, etc.)
+[git_state]
+disabled = true
+format = ' [\($state( $progress_current/$progress_total)\)]($style)'
+style = 'red'
+cherry_pick = 'CHERRY-PICK'
+bisect = 'BISECT'
+am = 'AM'
+am_or_rebase = 'AM/REBASE'
+rebase = 'REBASE'
+merge = 'MERGE'
+
+[git_status]
+format = '( [\[$ahead_behind$stashed\]]($style))'
+style = "cyan"
+stashed = "≡"
+ahead = "⇡${count}"
+behind = "⇣${count}"
+
+# Enhanced dirty status indicator - changes git_branch color when dirty
+[custom.git_status_dirty]
+disabled = true
+when = 'test -n "$(git status --porcelain 2>/dev/null)"'
+symbol = "•"
+style = "red"  # Changed to red to make it more obvious
+format="[$symbol]($style)"
+shell = ["sh"]
+
+# Clean git branch (green background with lozenge shape) - no changes at all
+[custom.git_branch_clean]
+when = 'git rev-parse --git-dir >/dev/null 2>&1 && test -z "$(git status --porcelain 2>/dev/null)"'
+command = '''
+branch=$(git branch --show-current 2>/dev/null)
+if [ -z "$branch" ]; then
+    hash=$(git rev-parse --short HEAD 2>/dev/null)
+    printf "➦ %s" "$hash"
+else
+    printf "%s" "$branch"
+fi
+'''
+format = '[](fg:green)[$output](bg:green fg:black bold)[](fg:green)'
+shell = ["sh"]
+
+# Staged-only git branch (yellow background with lozenge shape) - only staged changes
+[custom.git_branch_staged]
+when = '''
+git rev-parse --git-dir >/dev/null 2>&1 && 
+test -n "$(git status --porcelain 2>/dev/null)" && 
+test -z "$(git status --porcelain 2>/dev/null | grep -E '^.[^ ]')"
+'''
+command = '''
+branch=$(git branch --show-current 2>/dev/null)
+if [ -z "$branch" ]; then
+    hash=$(git rev-parse --short HEAD 2>/dev/null)
+    printf "➦ %s" "$hash"
+else
+    printf "%s" "$branch"
+fi
+'''
+format = '[](fg:yellow)[$output](bg:yellow fg:black bold)[](fg:yellow)'
+shell = ["sh"]
+
+# Unstaged git branch (orange background with lozenge shape) - any unstaged changes
+[custom.git_branch_unstaged]
+when = '''
+git rev-parse --git-dir >/dev/null 2>&1 && 
+test -n "$(git status --porcelain 2>/dev/null | grep -E '^.[^ ]')"
+'''
+command = '''
+branch=$(git branch --show-current 2>/dev/null)
+if [ -z "$branch" ]; then
+    hash=$(git rev-parse --short HEAD 2>/dev/null)
+    printf "➦ %s" "$hash"
+else
+    printf "%s" "$branch"
+fi
+'''
+format = '[](fg:orange)[$output](bg:orange fg:black bold)[](fg:orange)'
+shell = ["sh"]
+
+[cmd_duration]
+format = ' [$duration]($style)'
+
+[status]
+disabled = false
+symbol = ' ✘'

@@ -9,6 +9,7 @@ Shell configuration and scripts for macOS.
 | `.zprofile` | Login shell setup (runs once per session) - homebrew, mise | `~/.zprofile` |
 | `.zshrc` | Interactive shell config - completion, aliases, functions, prompt | `~/.zshrc` |
 | `starship.toml` | Starship prompt configuration | `~/.config/starship.toml` |
+| `ghostty/` | Ghostty terminal config - keybinds, random EPL team tab titles | `~/.config/ghostty` |
 | `.gitconfig` | Git configuration (not symlinked - may contain machine-specific settings) | — |
 | `clean_room.sh` | Utility script | — |
 | `prepare-commit-msg` | Git hook | — |
@@ -25,6 +26,7 @@ ln -s ~/Dev/dotfiles/.zprofile ~/.zprofile
 ln -s ~/Dev/dotfiles/.zshrc ~/.zshrc
 mkdir -p ~/.config
 ln -s ~/Dev/dotfiles/starship.toml ~/.config/starship.toml
+ln -s ~/Dev/dotfiles/ghostty ~/.config/ghostty
 
 # 3. Restart your shell or source the config
 source ~/.zprofile
@@ -42,3 +44,8 @@ source ~/.zshrc
 - `clauded` - Run Claude with `--dangerously-skip-permissions`
 - `g1`-`g6` - Open Ghostty windows with different color themes (Dracula, Novel, Rebecca, Grass, Ocean, Ubuntu)
 - `title "name"` - Set the current tab/window title
+
+## Ghostty
+
+Custom keybinds:
+- `Cmd+Shift+T` - Open new tab with random Premier League team name as title

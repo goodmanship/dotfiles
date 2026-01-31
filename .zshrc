@@ -1,7 +1,11 @@
+# Completion
+autoload -Uz compinit && compinit
+
 # Disable git completion because SentinelOne is making it too slow
 compdef -d git
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 
-# Enable and configure zsh completion
+# History search with prefix (up/down arrow)
 autoload -U up-line-or-beginning-search
 autoload -U down-line-or-beginning-search
 zle -N up-line-or-beginning-search
@@ -9,14 +13,35 @@ zle -N down-line-or-beginning-search
 bindkey "^[[A" up-line-or-beginning-search
 bindkey "^[[B" down-line-or-beginning-search
 
-# Case-insensitive completion
-zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
-
+# Custom functions path
 fpath=($fpath "/Users/goodmanship/.zfunctions")
 
-# Set typewritten ZSH as a prompt
-#autoload -U promptinit; promptinit
-#prompt typewritten
-
-# Starship
+# Starship prompt
 eval "$(starship init zsh)"
+
+# ----- Aliases -----
+
+# Claude
+alias clauded='claude --dangerously-skip-permissions'
+
+# Ghostty windows with different themes
+alias g1='open -na Ghostty --args --theme=Dracula --working-directory=$HOME/Dev'
+alias g2='open -na Ghostty --args --theme=Novel --working-directory=$HOME/Dev'
+alias g3='open -na Ghostty --args --theme=Rebecca --working-directory=$HOME/Dev'
+alias g4='open -na Ghostty --args --theme=Grass --working-directory=$HOME/Dev'
+alias g5='open -na Ghostty --args --theme=Ocean --working-directory=$HOME/Dev'
+alias g6='open -na Ghostty --args --theme=Ubuntu --working-directory=$HOME/Dev'
+
+# ----- Functions -----
+
+# Set tab/window title
+title() {
+  printf '\e]2;%s\e\\' "$1"
+}
+
+# Set random EPL team as tab title
+rtitle() {
+  local name=$(shuf -n1 ~/.config/ghostty/epl-teams.txt)
+  title "$name"
+  echo "Title: $name"
+}

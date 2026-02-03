@@ -41,12 +41,17 @@ title() {
   printf '\e]2;%s\e\\' "$1"
 }
 
+# Pick random line from file (macOS compatible)
+_randline() {
+  awk 'BEGIN{srand()} {lines[NR]=$0} END{print lines[int(rand()*NR)+1]}' "$1"
+}
+
 # Set random EPL team as tab title
 rtitle() {
-  local name=$(shuf -n1 ~/.config/ghostty/epl-teams.txt)
+  local name=$(_randline ~/.config/ghostty/epl-teams.txt)
   title "$name"
   echo "Title: $name"
 }
 
 # Auto-set random EPL team title on new tabs
-title "$(shuf -n1 ~/.config/ghostty/epl-teams.txt)"
+title "$(_randline ~/.config/ghostty/epl-teams.txt)"

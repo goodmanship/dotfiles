@@ -1,8 +1,8 @@
 # Allow manual title setting (disable shell integration's auto-title)
 shell-integration-features = no-title
 
-# All new tabs/windows run the EPL team script (which sets title then execs zsh)
-command = ~/.config/ghostty/random-epl-tab.sh
+# Default working directory
+working-directory = /Users/goodmanship/Dev/anatomy
 
-# Open new tab with fn-F6
+# Open new tab with cmd+shift+t
 keybind = cmd+shift+t=new_tab

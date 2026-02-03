@@ -25,12 +25,14 @@ eval "$(starship init zsh)"
 alias clauded='claude --dangerously-skip-permissions'
 
 # Ghostty windows with different themes
-alias g1='open -na Ghostty --args --theme=Dracula --working-directory=$HOME/Dev'
-alias g2='open -na Ghostty --args --theme=Novel --working-directory=$HOME/Dev'
-alias g3='open -na Ghostty --args --theme=Rebecca --working-directory=$HOME/Dev'
-alias g4='open -na Ghostty --args --theme=Grass --working-directory=$HOME/Dev'
-alias g5='open -na Ghostty --args --theme=Ocean --working-directory=$HOME/Dev'
-alias g6='open -na Ghostty --args --theme=Ubuntu --working-directory=$HOME/Dev'
+alias gwin='~/.claude/scripts/ghostty-windows'
+alias g1='open -na Ghostty --args --theme="Cyberpunk" --working-directory="$HOME/Dev/anatomy"'
+alias g2='open -na Ghostty --args --theme="Rebecca" --working-directory="$HOME/Dev/anatomy"'
+alias g3='open -na Ghostty --args --theme="Novel" --working-directory="$HOME/Dev/anatomy"'
+alias g4='open -na Ghostty --args --theme="Ocean" --working-directory="$HOME/Dev/anatomy"'
+alias g5='open -na Ghostty --args --theme="Grass" --working-directory="$HOME/Dev/anatomy"'
+alias g6='open -na Ghostty --args --theme="Neon" --working-directory="$HOME/Dev/anatomy"'
+alias g7='open -a Ghostty --args --theme="Ubuntu" --working-directory="$HOME/Dev/anatomy"'
 
 # ----- Functions -----
 
@@ -45,3 +47,6 @@ rtitle() {
   title "$name"
   echo "Title: $name"
 }
+
+# Auto-set random EPL team title on new tabs
+title "$(shuf -n1 ~/.config/ghostty/epl-teams.txt)"

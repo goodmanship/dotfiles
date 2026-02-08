@@ -34,6 +34,15 @@ alias g5='open -na Ghostty --args --theme="Grass" --working-directory="$HOME/Dev
 alias g6='open -na Ghostty --args --theme="Neon" --working-directory="$HOME/Dev/anatomy"'
 alias g7='open -a Ghostty --args --theme="Ubuntu" --working-directory="$HOME/Dev/anatomy"'
 
+# Tab background themes (gt_ = ghostty theme _)
+alias gtp="printf '\e]11;#2d1b69\e\\\\'"  # purple
+alias gtb="printf '\e]11;#0a2f5c\e\\\\'"  # blue
+alias gtg="printf '\e]11;#1a3d1a\e\\\\'"  # green
+alias gtr="printf '\e]11;#5c1a1a\e\\\\'"  # red
+alias gta="printf '\e]11;#5c4a0a\e\\\\'"  # amber
+alias gtt="printf '\e]11;#0a4a4a\e\\\\'"  # teal
+alias gt0="printf '\e]11;#1e1e2e\e\\\\'"  # reset (Catppuccin Mocha)
+
 # ----- Functions -----
 
 # Set tab/window title

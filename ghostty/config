@@ -3,7 +3,7 @@
 # ============================================================
 # GPU-accelerated font rendering with ligatures and Retina crispness
 font-family = Cascadia Code NF
-font-size = 14
+font-size = 16
 font-thicken = true
 adjust-cell-height = 2
 font-feature = +liga
@@ -15,9 +15,8 @@ font-feature = +calt
 # Auto-switch light/dark theme with macOS appearance
 theme = light:Catppuccin Latte,dark:Catppuccin Mocha
 
-# Frosted glass transparency
-background-opacity = 0.88
-background-blur = 16
+# Solid background (set background-opacity < 1 for transparency)
+background-opacity = 1
 
 # Breathing room
 window-padding-x = 8
@@ -54,7 +53,7 @@ window-theme = system
 confirm-close-surface = false
 
 # Quick Terminal (dropdown/quake-style) -- global hotkey
-keybind = global:cmd+grave_accent=toggle_quick_terminal
+keybind = global:cmd+alt+grave_accent=toggle_quick_terminal
 quick-terminal-position = top
 quick-terminal-animation-duration = 0.08
 quick-terminal-autohide = true
@@ -72,17 +71,15 @@ keybind = cmd+alt+down=goto_split:bottom
 keybind = cmd+shift+z=toggle_split_zoom
 keybind = cmd+shift+equal=equalize_splits
 
-# Tabs
+# Tabs (Cmd+Shift+[ and ] handled natively by macOS titlebar tabs)
 keybind = cmd+shift+t=new_tab
-keybind = cmd+shift+left_bracket=previous_tab
-keybind = cmd+shift+right_bracket=next_tab
 
 # Jump between shell prompts (requires shell integration)
 keybind = cmd+up=jump_to_prompt:-1
 keybind = cmd+down=jump_to_prompt:1
 
 # Reload config without restart
-keybind = cmd+shift+comma=reload_config
+keybind = cmd+ctrl+r=reload_config
 
 # ============================================================
 # 5. SHELL INTEGRATION, CLIPBOARD & SECURITY

@@ -6,7 +6,7 @@
   "model": "opus",
   "statusLine": {
     "type": "command",
-    "command": "cat | jq -r '(.context_window.used_percentage // 0 | round) as $pct | .model.display_name + \" • \" + (.workspace.current_dir | split(\"/\") | last) + (if $pct >= 85 then \" • \\u001b[31m⚠ COMPACT SOON (\" + ($pct | tostring) + \"%)\\u001b[0m\" elif $pct >= 75 then \" • \\u001b[38;5;208m\" + ($pct | tostring) + \"% context\\u001b[0m\" elif $pct >= 65 then \" • \\u001b[33m\" + ($pct | tostring) + \"% context\\u001b[0m\" else \"\" end)'"
+    "command": "~/.claude/scripts/statusline-command.sh"
   },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": true,

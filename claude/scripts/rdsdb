@@ -1,0 +1,77 @@
+#!/bin/bash
+set -e
+
+source ~/.secrets/credentials
+
+SESSION_FILE="/tmp/rdsdb_session"
+CMD="${1:-help}"
+
+get_url() {
+  case "$1" in
+    payer) echo "$PAYERDB_PROD_URL" ;;
+    user) echo "$USERDB_PROD_URL" ;;
+  esac
+}
+
+start_tunnel() {
+  echo "Starting SSH tunnel to bastion..."
+  pkill -f "bastion.ext.anatomy.com" 2>/dev/null || true
+  ssh -fNL 5433:anatomy-prod.ctk75s9hcvfr.us-east-1.rds.amazonaws.com:5432 rio@anatomy.com@bastion.ext.anatomy.com
+  sleep 2
+}
+
+ensure_tunnel() {
+  if ! nc -z 127.0.0.1 5433 2>/dev/null; then
+    echo "Tunnel down, reconnecting..."
+    start_tunnel
+  fi
+}
+
+case "$CMD" in
+  connect)
+    DB="${2:-payer}"
+    [[ "$DB" =~ ^(payer|user)$ ]] || { echo "Unknown db: $DB (use payer or user)"; exit 1; }
+    start_tunnel
+    echo "$DB" > "$SESSION_FILE"
+    echo "Connected to $DB. Use 'rdsdb q SQL' to query. Tunnel may timeout - will auto-reconnect."
+    ;;
+  q|query)
+    [ -f "$SESSION_FILE" ] || { echo "No session. Run: rdsdb connect [payer|user]"; exit 1; }
+    DB=$(cat "$SESSION_FILE")
+    URL=$(get_url "$DB")
+    ensure_tunnel
+    shift
+    psql "$URL" -c "$*"
+    ;;
+  f|file)
+    [ -f "$SESSION_FILE" ] || { echo "No session. Run: rdsdb connect [payer|user]"; exit 1; }
+    DB=$(cat "$SESSION_FILE")
+    URL=$(get_url "$DB")
+    ensure_tunnel
+    psql "$URL" -f "$2"
+    ;;
+  batch)
+    [ -f "$SESSION_FILE" ] || { echo "No session. Run: rdsdb connect [payer|user]"; exit 1; }
+    DB=$(cat "$SESSION_FILE")
+    URL=$(get_url "$DB")
+    for sql in "$2"/*.sql; do
+      [ -f "$sql" ] || continue
+      echo "Running $(basename "$sql")..."
+      ensure_tunnel
+      psql "$URL" -f "$sql"
+    done
+    ;;
+  close)
+    pkill -f "bastion.ext.anatomy.com" 2>/dev/null || true
+    rm -f "$SESSION_FILE"
+    echo "Session closed, tunnel killed."
+    ;;
+  *)
+    echo "Usage:"
+    echo "  rdsdb connect [payer|user]  - Start SSH tunnel, start session"
+    echo "  rdsdb q SQL                 - Run query (auto-reconnects if tunnel died)"
+    echo "  rdsdb f PATH                - Run SQL file"
+    echo "  rdsdb batch DIR             - Run all .sql files in dir"
+    echo "  rdsdb close                 - End session, kill tunnel"
+    ;;
+esac

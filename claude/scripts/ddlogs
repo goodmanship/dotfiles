@@ -1,0 +1,39 @@
+#!/bin/bash
+set -e
+
+source ~/.secrets/credentials
+
+QUERY="$1"
+FROM="${2:-1h}"
+LIMIT="${3:-100}"
+
+if [ -z "$QUERY" ]; then
+  echo "Usage: ddlogs <query> [from: 1h|6h|1d|7d] [limit: 100]"
+  echo "Example: ddlogs 'service:payer-service document_id:abc123' 1d 50"
+  exit 1
+fi
+
+case "$FROM" in
+  1h) FROM_TS=$(($(date +%s) - 3600))000 ;;
+  6h) FROM_TS=$(($(date +%s) - 21600))000 ;;
+  1d) FROM_TS=$(($(date +%s) - 86400))000 ;;
+  7d) FROM_TS=$(($(date +%s) - 604800))000 ;;
+  *) FROM_TS=$(($(date +%s) - 3600))000 ;;
+esac
+TO_TS=$(date +%s)000
+
+curl -s -X POST "https://api.${DD_SITE}/api/v2/logs/events/search" \
+  -H "DD-API-KEY: ${DD_API_KEY}" \
+  -H "DD-APPLICATION-KEY: ${DD_APP_KEY}" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"filter\": {
+      \"query\": \"$QUERY\",
+      \"from\": \"$FROM_TS\",
+      \"to\": \"$TO_TS\"
+    },
+    \"page\": {
+      \"limit\": $LIMIT
+    },
+    \"sort\": \"timestamp\"
+  }" | jq -r '.data[]? | "\(.attributes.timestamp) [\(.attributes.status // "INFO")] \(.attributes.message // .attributes.attributes.message // "no message")[0:200]"' 2>/dev/null || cat

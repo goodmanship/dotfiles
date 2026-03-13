@@ -1,0 +1,125 @@
+#!/bin/bash
+set -e
+
+source ~/.secrets/credentials
+
+SESSION_FILE="/tmp/edidb_session"
+WHITELIST_EXPIRY_FILE="/tmp/docdb_whitelist_expiry"  # Share whitelist with docdb
+CMD="${1:-help}"
+
+get_url() {
+  case "$1" in
+    prod) echo "$EDIDB_PROD_URL" ;;
+    stg|staging) echo "$EDIDB_STG_URL" ;;
+    dev) echo "$EDIDB_DEV_URL" ;;
+  esac
+}
+
+get_project_and_instance() {
+  case "$1" in
+    prod) echo "rare-lattice-388916 prod-ocr-job-db-instance" ;;
+    stg|staging) echo "eob-ocr-and-extraction-stage stage-ocr-job-db-instance" ;;
+    dev) echo "eob-ocr-and-extraction-dev dev-ocr-job-db-instance" ;;
+    *) echo ""; return 1 ;;
+  esac
+}
+
+is_whitelist_valid() {
+  local env="$1"
+  local expiry_file="${WHITELIST_EXPIRY_FILE}_${env}"
+  if [ -f "$expiry_file" ]; then
+    local expiry=$(cat "$expiry_file")
+    local now=$(date +%s)
+    if [ "$now" -lt "$expiry" ]; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+whitelist_ip() {
+  local env="$1"
+  local info=$(get_project_and_instance "$env")
+  if [ -z "$info" ]; then
+    echo "Unknown env: $env" >&2
+    return 1
+  fi
+  local project=$(echo "$info" | cut -d' ' -f1)
+  local instance=$(echo "$info" | cut -d' ' -f2)
+
+  echo "Setting project to $project..." >&2
+  gcloud config set project "$project" --quiet 2>&1 >&2
+
+  echo "Whitelisting IP for $instance (5 min window)..." >&2
+  gcloud sql connect "$instance" --quiet </dev/null >/dev/null 2>&1 &
+  local PID=$!
+  sleep 8
+  kill $PID 2>/dev/null || true
+  wait $PID 2>/dev/null || true
+
+  local expiry=$(($(date +%s) + 240))
+  echo "$expiry" > "${WHITELIST_EXPIRY_FILE}_${env}"
+  echo "IP whitelisted." >&2
+}
+
+ensure_whitelist() {
+  local env="$1"
+  if ! is_whitelist_valid "$env"; then
+    whitelist_ip "$env"
+  else
+    echo "Using existing whitelist (still valid)." >&2
+  fi
+}
+
+case "$CMD" in
+  connect)
+    ENV="${2:-staging}"
+    whitelist_ip "$ENV"
+    echo "$ENV" > "$SESSION_FILE"
+    echo "Connected to $ENV. Use 'edidb q SQL' to query."
+    ;;
+  q|query)
+    if [ -f "$SESSION_FILE" ]; then
+      ENV=$(cat "$SESSION_FILE")
+    else
+      ENV="staging"
+    fi
+    ensure_whitelist "$ENV"
+    URL=$(get_url "$ENV")
+    shift
+    psql "$URL" -c "$*"
+    ;;
+  run)
+    ENV="${2:-staging}"
+    SQL="$3"
+    if [ -z "$SQL" ]; then
+      SQL="$2"
+      ENV="staging"
+    fi
+    ensure_whitelist "$ENV"
+    URL=$(get_url "$ENV")
+    psql "$URL" -c "$SQL"
+    ;;
+  f|file)
+    if [ -f "$SESSION_FILE" ]; then
+      ENV=$(cat "$SESSION_FILE")
+    else
+      ENV="staging"
+    fi
+    ensure_whitelist "$ENV"
+    URL=$(get_url "$ENV")
+    psql "$URL" -f "$2"
+    ;;
+  close)
+    rm -f "$SESSION_FILE"
+    echo "Session closed."
+    ;;
+  *)
+    echo "Usage:"
+    echo "  edidb connect [stg|dev|prod]  - Whitelist IP, start session"
+    echo "  edidb q SQL                   - Run query (auto-whitelists if needed)"
+    echo "  edidb run [env] SQL           - One-shot: whitelist + query"
+    echo "  edidb f PATH                  - Run SQL file"
+    echo "  edidb close                   - End session"
+    ;;
+esac

@@ -1,0 +1,177 @@
+#!/bin/bash
+set -e
+
+source ~/.secrets/credentials
+
+SESSION_FILE="/tmp/docdb_session"
+WHITELIST_EXPIRY_FILE="/tmp/docdb_whitelist_expiry"
+CMD="${1:-help}"
+
+get_url() {
+  case "$1" in
+    prod) echo "$DOCDB_PROD_URL" ;;
+    stg|staging) echo "$DOCDB_STG_URL" ;;
+    dev) echo "$DOCDB_DEV_URL" ;;
+  esac
+}
+
+get_project_and_instance() {
+  case "$1" in
+    prod) echo "rare-lattice-388916 prod-ocr-job-db-instance" ;;
+    stg|staging) echo "eob-ocr-and-extraction-stage stage-ocr-job-db-instance" ;;
+    dev) echo "eob-ocr-and-extraction-dev dev-ocr-job-db-instance" ;;
+    *) echo ""; return 1 ;;
+  esac
+}
+
+is_whitelist_valid() {
+  local env="$1"
+  local expiry_file="${WHITELIST_EXPIRY_FILE}_${env}"
+  if [ -f "$expiry_file" ]; then
+    local expiry=$(cat "$expiry_file")
+    local now=$(date +%s)
+    if [ "$now" -lt "$expiry" ]; then
+      return 0
+    fi
+  fi
+  return 1
+}
+
+whitelist_ip() {
+  local env="$1"
+  local info=$(get_project_and_instance "$env")
+  if [ -z "$info" ]; then
+    echo "Unknown env: $env" >&2
+    return 1
+  fi
+  local project=$(echo "$info" | cut -d' ' -f1)
+  local instance=$(echo "$info" | cut -d' ' -f2)
+
+  echo "Setting project to $project..." >&2
+  gcloud config set project "$project" --quiet 2>&1 >&2
+
+  echo "Whitelisting IP for $instance (5 min window)..." >&2
+  # Run gcloud sql connect in background, let it whitelist, then kill it
+  gcloud sql connect "$instance" --quiet </dev/null >/dev/null 2>&1 &
+  local PID=$!
+  sleep 8
+  kill $PID 2>/dev/null || true
+  wait $PID 2>/dev/null || true
+
+  # Record whitelist expiry (4 minutes from now to be safe)
+  local expiry=$(($(date +%s) + 240))
+  echo "$expiry" > "${WHITELIST_EXPIRY_FILE}_${env}"
+  echo "IP whitelisted." >&2
+}
+
+ensure_whitelist() {
+  local env="$1"
+  if ! is_whitelist_valid "$env"; then
+    whitelist_ip "$env"
+  else
+    echo "Using existing whitelist (still valid)." >&2
+  fi
+}
+
+run_query() {
+  local env="$1"
+  shift
+  local url=$(get_url "$env")
+  if [ -z "$url" ]; then
+    echo "No URL configured for env: $env" >&2
+    return 1
+  fi
+  psql "$url" -c "$*"
+}
+
+case "$CMD" in
+  connect)
+    ENV="${2:-prod}"
+    whitelist_ip "$ENV"
+    echo "$ENV" > "$SESSION_FILE"
+    echo "Connected to $ENV. Use 'docdb q SQL' to query."
+    ;;
+  q|query)
+    if [ -f "$SESSION_FILE" ]; then
+      ENV=$(cat "$SESSION_FILE")
+    else
+      ENV="prod"
+    fi
+    ensure_whitelist "$ENV"
+    URL=$(get_url "$ENV")
+    shift
+    psql "$URL" -c "$*"
+    ;;
+  run)
+    # One-shot: whitelist + query in one command
+    # Usage: docdb run [env] "SQL"
+    ENV="${2:-prod}"
+    SQL="$3"
+    if [ -z "$SQL" ]; then
+      # If only 2 args, assume env is prod and arg 2 is SQL
+      SQL="$2"
+      ENV="prod"
+    fi
+    ensure_whitelist "$ENV"
+    run_query "$ENV" "$SQL"
+    ;;
+  f|file)
+    if [ -f "$SESSION_FILE" ]; then
+      ENV=$(cat "$SESSION_FILE")
+    else
+      ENV="prod"
+    fi
+    ensure_whitelist "$ENV"
+    URL=$(get_url "$ENV")
+    psql "$URL" -f "$2"
+    ;;
+  batch)
+    if [ -f "$SESSION_FILE" ]; then
+      ENV=$(cat "$SESSION_FILE")
+    else
+      ENV="prod"
+    fi
+    ensure_whitelist "$ENV"
+    URL=$(get_url "$ENV")
+    for sql in "$2"/*.sql; do
+      [ -f "$sql" ] || continue
+      echo "Running $(basename "$sql")..."
+      psql "$URL" -f "$sql"
+    done
+    ;;
+  close)
+    rm -f "$SESSION_FILE"
+    rm -f ${WHITELIST_EXPIRY_FILE}_*
+    echo "Session closed."
+    ;;
+  status)
+    echo "Session file: $SESSION_FILE"
+    if [ -f "$SESSION_FILE" ]; then
+      echo "Active env: $(cat "$SESSION_FILE")"
+    else
+      echo "No active session"
+    fi
+    for f in ${WHITELIST_EXPIRY_FILE}_*; do
+      [ -f "$f" ] || continue
+      env=$(basename "$f" | sed 's/docdb_whitelist_expiry_//')
+      expiry=$(cat "$f")
+      now=$(date +%s)
+      remaining=$((expiry - now))
+      if [ $remaining -gt 0 ]; then
+        echo "Whitelist $env: ${remaining}s remaining"
+      else
+        echo "Whitelist $env: expired"
+      fi
+    done
+    ;;
+  *)
+    echo "Usage:"
+    echo "  docdb connect [prod|stg|dev]  - Whitelist IP, start session"
+    echo "  docdb q SQL                   - Run query (auto-whitelists if needed)"
+    echo "  docdb run [env] SQL           - One-shot: whitelist + query"
+    echo "  docdb f PATH                  - Run SQL file"
+    echo "  docdb batch DIR               - Run all .sql files in dir"
+    echo "  docdb status                  - Show session/whitelist status"
+    echo "  docdb close                   - End session"
+    ;;
+esac

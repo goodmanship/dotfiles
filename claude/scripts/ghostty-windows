@@ -1,0 +1,17 @@
+#!/bin/bash
+
+themes=(
+  "Dracula"
+  "Belafonte Day"
+  "Blue Dolphin"
+  "Solarized Darcula"
+  "Unikitty"
+)
+
+dir="/Users/goodmanship/Dev/anatomy"
+
+for theme in "${themes[@]}"; do
+  open -na Ghostty --args --theme="$theme" --working-directory="$dir"
+  sleep 0.5
+  osascript -e 'tell application "System Events" to keystroke return using {control down, option down}'
+done

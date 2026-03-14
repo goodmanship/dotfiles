@@ -3,7 +3,7 @@
 # ============================================================
 # GPU-accelerated font rendering with ligatures and Retina crispness
 font-family = Cascadia Code NF
-font-size = 16
+font-size = 14
 font-thicken = true
 adjust-cell-height = 2
 font-feature = +liga
@@ -29,7 +29,7 @@ cursor-style = block
 cursor-style-blink = false
 
 # Dim unfocused splits
-unfocused-split-opacity = 0.75
+unfocused-split-opacity = 0.4
 
 # Hide mouse while typing
 mouse-hide-while-typing = true

@@ -23,6 +23,8 @@ eval "$(starship init zsh)"
 
 # Claude
 alias clauded='claude --dangerously-skip-permissions'
+# Secrets (not committed to dotfiles repo)
+[[ -f ~/.env.local ]] && source ~/.env.local
 
 # Ghostty windows with different themes
 alias gwin='~/.claude/scripts/ghostty-windows'

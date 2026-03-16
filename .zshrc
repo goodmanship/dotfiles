@@ -22,7 +22,7 @@ eval "$(starship init zsh)"
 # ----- Aliases -----
 
 # Claude
-alias clauded='claude --dangerously-skip-permissions'
+alias clauded='claude --dangerously-skip-permissions --model opus'
 # Secrets (not committed to dotfiles repo)
 [[ -f ~/.env.local ]] && source ~/.env.local
 

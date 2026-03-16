@@ -1,6 +1,9 @@
 # Disable Ghostty's auto-title so we can set it manually
 export GHOSTTY_SHELL_INTEGRATION_NO_TITLE=1
 
+# Secrets (not committed to dotfiles repo)
+[[ -f ~/.env.local ]] && source ~/.env.local
+
 # Homebrew
 eval "$(/opt/homebrew/bin/brew shellenv)"
 export PATH="/opt/homebrew/bin:/opt/homebrew/sbin:$PATH"

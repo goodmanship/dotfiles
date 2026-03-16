@@ -189,10 +189,10 @@ fi
 
 # ---------------------------------------------------------------------------
 # Compose status line
-# Row 1: session info — Row 2: all progress bars (context + rate limits)
+# Single row: session info + context bar + rate-limit usage bars
 # ---------------------------------------------------------------------------
 
-# Row 1: branch + dir │ model │ tokens
+# Session info: branch + dir │ model │ tokens
 if [ -n "$branch" ] && [ -n "$dir_name" ]; then
     row1="${C_DCYAN}[${branch}] ${dir_name}${C_RST}"
 elif [ -n "$branch" ]; then
@@ -210,7 +210,7 @@ fi
 
 row1="${row1}${C_SEP}${C_DIM}${model_name}${think_label}${C_RST}${C_SEP}${C_DIM}${tok_str}${C_RST}"
 
-# Row 2: context bar + rate-limit usage bars
+# Inline details: context bar + rate-limit usage bars
 row2=""
 
 # Compaction indicator
@@ -230,7 +230,7 @@ if [ "$remaining_pct" -ge 0 ] 2>/dev/null; then
         ctx_color="$C_GRN"
     fi
     local_bar=$(make_bar "$compact_fill" "" 6 "$ctx_color")
-    row2="${ctx_color}ctx ${C_RST}${local_bar}${ctx_color} ${compact_left}% to compact${C_RST}"
+    row2="${ctx_color}ctx ${C_RST}${local_bar}${ctx_color} ${compact_left}%${C_RST}"
 fi
 
 # Append rate-limit usage bars
@@ -240,5 +240,8 @@ if [ -n "$usage_parts" ]; then
 fi
 
 # Output
-echo -e "$row1"
-[ -n "$row2" ] && echo -e "$row2"
+if [ -n "$row2" ]; then
+    echo -e "${row1}${C_SEP}${row2}"
+else
+    echo -e "$row1"
+fi

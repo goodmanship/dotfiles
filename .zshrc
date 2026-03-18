@@ -28,13 +28,13 @@ alias clauded='claude --dangerously-skip-permissions --model opus'
 alias gwin='~/.claude/scripts/ghostty-windows'
 
 # Open new Ghostty window: gw <theme>
-gw() { open -na Ghostty --args --theme="$1" --working-directory="$HOME/Dev/anatomy"; }
+gw() { open -na Ghostty --args "--theme=$1" "--working-directory=$HOME/Dev/anatomy"; }
 
 # Tab background color: gt <color>
 gt() {
-  local -A colors=(p '#2d1b69' b '#0a2f5c' g '#1a3d1a' r '#5c1a1a' a '#5c4a0a' t '#0a4a4a' 0 '#1e1e2e')
+  local -A colors=(p '#2d1b69' b '#0a2f5c' g '#1a3d1a' r '#5c1a1a' a '#5c4a0a' t '#0a4a4a' w '#c0c0c0' s '#c4a882' 0 '#1e1e2e')
   local hex="${colors[$1]}"
-  [[ -z "$hex" ]] && { echo "Colors: p(urple) b(lue) g(reen) r(ed) a(mber) t(eal) 0(reset)"; return 1; }
+  [[ -z "$hex" ]] && { echo "Colors: p(urple) b(lue) g(reen) r(ed) a(mber) t(eal) w(hite) s(epia) 0(reset)"; return 1; }
   printf '\e]11;%s\e\\' "$hex"
 }
 

@@ -27,8 +27,13 @@ alias clauded='claude --dangerously-skip-permissions --model opus'
 # Ghostty
 alias gwin='~/.claude/scripts/ghostty-windows'
 
-# Open new Ghostty window: gw <theme>
-gw() { open -na Ghostty --args "--theme=$1" "--working-directory=$HOME/Dev/anatomy"; }
+# Open new Ghostty window: gw [shortcut|theme]
+gw() {
+  local -A themes=(l 'Catppuccin Latte' m 'Catppuccin Mocha' n 'Neon')
+  local theme="${themes[$1]:-$1}"
+  [[ -z "$theme" ]] && { open -na Ghostty --args "--working-directory=$HOME/Dev/anatomy"; return; }
+  open -na Ghostty --args "--theme=$theme" "--working-directory=$HOME/Dev/anatomy"
+}
 
 # Tab background color: gt <color>
 gt() {

@@ -21,7 +21,7 @@ start_tunnel() {
 }
 
 ensure_tunnel() {
-  if ! nc -z 127.0.0.1 5433 2>/dev/null; then
+  if ! pgrep -f "bastion.ext.anatomy.com" >/dev/null 2>&1; then
     echo "Tunnel down, reconnecting..."
     start_tunnel
   fi

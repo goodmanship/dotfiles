@@ -11,7 +11,7 @@
 - Use `uv` or `dev/exec` to run test/python commands
 
 ## PR Reviews
-- Check ALL unresolved comments: `gh api repos/{owner}/{repo}/pulls/{pr}/comments --paginate | jq 'sort_by(.created_at) | reverse'`
+- Check ALL unresolved comments using GraphQL `reviewThreads` (REST `/comments` doesn't show resolution status) — see `memory/feedback_pr_comments.md` for full query
 - Cursor Bugbot adds new comments on each push - check for latest after each commit
 - **CodeQL alerts block PRs** — must dismiss High alerts via API, not just reply to comments: `gh api repos/{owner}/{repo}/code-scanning/alerts/{id} --method PATCH -f state=dismissed -f "dismissed_reason=won't fix" -f "dismissed_comment=Reason here"`
 - To find CodeQL alerts: `gh api repos/{owner}/{repo}/code-scanning/alerts --method GET -f per_page=100 | jq '[.[] | select(.state == "open")] | .[] | {number, rule_id: .rule.id, severity: .rule.security_severity_level, path: .most_recent_instance.location.path}'`
@@ -202,21 +202,7 @@ Key task queues:
 
 Note: Activity results are encrypted in prod, so you can't see return values directly. Check Datadog logs instead.
 
-### Eng Meeting Automation
-- `~/.claude/scripts/eng-meeting-notes.sh` - launchd runs Tuesdays 5 PM, biweekly (anchor: 2026-02-10)
-- Creates Notion page under "Biweekly Engineering Meeting", moves Bike Rack "Next" topics, adds Google Meet recording + Gemini notes links
-- `~/.claude/scripts/gcal-meeting-attachments.py` - fetches recording/notes URLs from Google Calendar API
-- `~/.claude/scripts/gcal-setup.py` - one-time OAuth setup, saves token to `~/.secrets/gcal-token.json`
-- launchd plist: `~/Library/LaunchAgents/com.anatomy.eng-meeting-notes.plist`
-- Bike Rack page ID: `14350a2c0f95803193a0f3a61136db8f`, parent page ID: `14350a2c0f95800f8b0dcfbc2a56303a`
-
 ### Notion MCP
 - Two Notion MCP servers available: `mcp__notion__*` and `mcp__claude_ai_Notion__*` - if one has token issues, try the other
 - Notion `<unknown>` blocks (external_object_instance) = embedded Google Drive files, cannot be created via API - use markdown links instead
 - Always fetch `notion://docs/enhanced-markdown-spec` MCP resource before creating/updating page content
-
-### Google API Auth
-- `gcloud auth application-default login` is broken (SDK 499.0.0) - "None could not be converted to bytes" error
-- Use standalone Python OAuth instead: `uv run ~/.claude/scripts/gcal-setup.py` (uses `google-auth-oauthlib`, saves to `~/.secrets/gcal-token.json`)
-- Calendar API enabled on project `rare-lattice-388916`, requires `quota_project_id` set on credentials
-- GCP project sometimes changes for db access - doesn't affect gcal token

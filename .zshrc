@@ -23,27 +23,20 @@ eval "$(starship init zsh)"
 
 # Claude
 alias clauded='claude --dangerously-skip-permissions --model opus'
-# Secrets (not committed to dotfiles repo)
-[[ -f ~/.env.local ]] && source ~/.env.local
 
-# Ghostty windows with different themes
+# Ghostty
 alias gwin='~/.claude/scripts/ghostty-windows'
-alias g1='open -na Ghostty --args --theme="Cyberpunk" --working-directory="$HOME/Dev/anatomy"'
-alias g2='open -na Ghostty --args --theme="Rebecca" --working-directory="$HOME/Dev/anatomy"'
-alias g3='open -na Ghostty --args --theme="Novel" --working-directory="$HOME/Dev/anatomy"'
-alias g4='open -na Ghostty --args --theme="Ocean" --working-directory="$HOME/Dev/anatomy"'
-alias g5='open -na Ghostty --args --theme="Grass" --working-directory="$HOME/Dev/anatomy"'
-alias g6='open -na Ghostty --args --theme="Neon" --working-directory="$HOME/Dev/anatomy"'
-alias g7='open -a Ghostty --args --theme="Ubuntu" --working-directory="$HOME/Dev/anatomy"'
 
-# Tab background themes (gt_ = ghostty theme _)
-alias gtp="printf '\e]11;#2d1b69\e\\\\'"  # purple
-alias gtb="printf '\e]11;#0a2f5c\e\\\\'"  # blue
-alias gtg="printf '\e]11;#1a3d1a\e\\\\'"  # green
-alias gtr="printf '\e]11;#5c1a1a\e\\\\'"  # red
-alias gta="printf '\e]11;#5c4a0a\e\\\\'"  # amber
-alias gtt="printf '\e]11;#0a4a4a\e\\\\'"  # teal
-alias gt0="printf '\e]11;#1e1e2e\e\\\\'"  # reset (Catppuccin Mocha)
+# Open new Ghostty window: gw <theme>
+gw() { open -na Ghostty --args --theme="$1" --working-directory="$HOME/Dev/anatomy"; }
+
+# Tab background color: gt <color>
+gt() {
+  local -A colors=(p '#2d1b69' b '#0a2f5c' g '#1a3d1a' r '#5c1a1a' a '#5c4a0a' t '#0a4a4a' 0 '#1e1e2e')
+  local hex="${colors[$1]}"
+  [[ -z "$hex" ]] && { echo "Colors: p(urple) b(lue) g(reen) r(ed) a(mber) t(eal) 0(reset)"; return 1; }
+  printf '\e]11;%s\e\\' "$hex"
+}
 
 # ----- Functions -----
 

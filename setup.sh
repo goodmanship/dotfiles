@@ -76,6 +76,23 @@ else
 fi
 echo ""
 
+# Obsidian vault config
+OBSIDIAN_VAULT="$HOME/Documents/Vault/.obsidian"
+if [ -d "$HOME/Documents/Vault" ]; then
+  echo "Setting up Obsidian config..."
+  mkdir -p "$OBSIDIAN_VAULT"
+  mkdir -p "$OBSIDIAN_VAULT/snippets"
+  backup_and_link "$DOTFILES_DIR/obsidian/app.json" "$OBSIDIAN_VAULT/app.json"
+  backup_and_link "$DOTFILES_DIR/obsidian/appearance.json" "$OBSIDIAN_VAULT/appearance.json"
+  backup_and_link "$DOTFILES_DIR/obsidian/core-plugins.json" "$OBSIDIAN_VAULT/core-plugins.json"
+  backup_and_link "$DOTFILES_DIR/obsidian/community-plugins.json" "$OBSIDIAN_VAULT/community-plugins.json"
+  backup_and_link "$DOTFILES_DIR/obsidian/graph.json" "$OBSIDIAN_VAULT/graph.json"
+  backup_and_link "$DOTFILES_DIR/obsidian/snippets/terminal-vibe.css" "$OBSIDIAN_VAULT/snippets/terminal-vibe.css"
+else
+  echo "Skipping Obsidian config (vault not found at ~/Documents/Vault)"
+fi
+echo ""
+
 echo "Setup complete!"
 echo ""
 echo "Next steps:"

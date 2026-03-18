@@ -1,0 +1,10 @@
+{
+  "smartIndentList": false,
+  "autoConvertHtml": false,
+  "autoPairBrackets": false,
+  "autoPairMarkdown": false,
+  "spellcheck": false,
+  "showLineNumber": false,
+  "strictLineBreaks": true,
+  "vimMode": false
+}

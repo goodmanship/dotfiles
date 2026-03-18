@@ -1,0 +1,45 @@
+/* Terminal-like appearance to match Ghostty config */
+
+/* Monospace font everywhere */
+body {
+  --font-text-override: "Cascadia Code NF", "Cascadia Code", monospace;
+  --font-monospace-override: "Cascadia Code NF", "Cascadia Code", monospace;
+  --font-interface-override: "Cascadia Code NF", "Cascadia Code", monospace;
+}
+
+/* Font size to match Ghostty 14px */
+.markdown-source-view,
+.markdown-preview-view,
+.cm-s-obsidian {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Remove decorative elements for a cleaner look */
+.markdown-preview-view h1,
+.markdown-preview-view h2,
+.markdown-preview-view h3,
+.markdown-preview-view h4,
+.markdown-preview-view h5,
+.markdown-preview-view h6 {
+  font-weight: bold;
+  font-family: var(--font-text-override);
+}
+
+/* Minimal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 3px;
+}
+
+/* Tighter padding like a terminal */
+.markdown-source-view.mod-cm6 .cm-scroller {
+  padding: 8px;
+}
+
+.markdown-preview-view {
+  padding: 8px;
+}

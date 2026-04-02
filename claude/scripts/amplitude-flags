@@ -1,0 +1,298 @@
+#!/bin/bash
+set -euo pipefail
+
+source ~/.secrets/credentials
+
+BASE_URL="${AMPLITUDE_EXPERIMENT_BASE_URL:-https://experiment.amplitude.com}"
+
+usage() {
+  cat <<'EOF'
+Usage:
+  amplitude-flags deployments <dev|staging|prod> [--limit N] [--cursor N]
+  amplitude-flags flags <dev|staging|prod> [--project-id ID] [--key FLAG_KEY] [--limit N] [--cursor N] [--include-archived]
+  amplitude-flags get <dev|staging|prod> <flag-id>
+  amplitude-flags versions <dev|staging|prod> <flag-id>
+  amplitude-flags enable <dev|staging|prod> <flag-id> --yes
+  amplitude-flags disable <dev|staging|prod> <flag-id> --yes
+  amplitude-flags patch <dev|staging|prod> <flag-id> <json|@file> --yes
+  amplitude-flags create <dev|staging|prod> <json|@file> --yes
+  amplitude-flags add-deployment <dev|staging|prod> <flag-id> <deployment-id> --yes
+  amplitude-flags remove-deployment <dev|staging|prod> <flag-id> <deployment-id> --yes
+
+Examples:
+  amplitude-flags deployments prod
+  amplitude-flags flags staging --key ff_new_parser
+  amplitude-flags get prod 12345
+  amplitude-flags disable prod 12345 --yes
+  amplitude-flags patch prod 12345 '{"enabled":true,"rolloutPercentage":100}' --yes
+  amplitude-flags create prod @flag.json --yes
+EOF
+}
+
+die() {
+  echo "Error: $*" >&2
+  exit 1
+}
+
+need() {
+  command -v "$1" >/dev/null 2>&1 || die "missing required command: $1"
+}
+
+need curl
+need jq
+
+env_key() {
+  case "$1" in
+    dev) echo "AMPLITUDE_MGMT_API_KEY_DEV" ;;
+    staging) echo "AMPLITUDE_MGMT_API_KEY_STAGING" ;;
+    prod) echo "AMPLITUDE_MGMT_API_KEY_PROD" ;;
+    *) die "env must be one of: dev, staging, prod" ;;
+  esac
+}
+
+api_key_for() {
+  local var
+  var="$(env_key "$1")"
+  local key="${!var:-}"
+  [[ -n "$key" ]] || die "missing $var in ~/.secrets/credentials"
+  echo "$key"
+}
+
+json_arg() {
+  local arg="$1"
+
+  if [[ "$arg" == @* ]]; then
+    local file="${arg#@}"
+    [[ -f "$file" ]] || die "json file not found: $file"
+    jq -c . "$file"
+    return
+  fi
+
+  printf '%s' "$arg" | jq -c .
+}
+
+require_yes() {
+  [[ "${1:-}" == "--yes" ]] || die "write commands require --yes"
+}
+
+encode() {
+  jq -nr --arg v "$1" '$v|@uri'
+}
+
+qs() {
+  local out=""
+  local sep="?"
+  local item
+
+  for item in "$@"; do
+    [[ -n "$item" ]] || continue
+    local key="${item%%=*}"
+    local value="${item#*=}"
+    out+="${sep}${key}=$(encode "$value")"
+    sep="&"
+  done
+
+  printf '%s' "$out"
+}
+
+call_api() {
+  local method="$1"
+  local path="$2"
+  local key="$3"
+  local body="${4:-}"
+  local tmp
+  tmp="$(mktemp)"
+
+  local code
+  if [[ -n "$body" ]]; then
+    code="$(curl -sS -o "$tmp" -w "%{http_code}" \
+      -X "$method" \
+      "${BASE_URL}${path}" \
+      -H "Accept: application/json" \
+      -H "Content-Type: application/json" \
+      -H "Authorization: Bearer ${key}" \
+      --data "$body")"
+  else
+    code="$(curl -sS -o "$tmp" -w "%{http_code}" \
+      -X "$method" \
+      "${BASE_URL}${path}" \
+      -H "Accept: application/json" \
+      -H "Authorization: Bearer ${key}")"
+  fi
+
+  if [[ "$code" -lt 200 || "$code" -ge 300 ]]; then
+    echo "HTTP ${code}" >&2
+    cat "$tmp" >&2
+    rm -f "$tmp"
+    exit 1
+  fi
+
+  if jq -e . >/dev/null 2>&1 < "$tmp"; then
+    jq . "$tmp"
+  else
+    cat "$tmp"
+    printf '\n'
+  fi
+
+  rm -f "$tmp"
+}
+
+build_flags_path() {
+  local args=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --project-id)
+        [[ $# -ge 2 ]] || die "--project-id requires a value"
+        args+=("projectId=$2")
+        shift 2
+        ;;
+      --key)
+        [[ $# -ge 2 ]] || die "--key requires a value"
+        args+=("key=$2")
+        shift 2
+        ;;
+      --limit)
+        [[ $# -ge 2 ]] || die "--limit requires a value"
+        args+=("limit=$2")
+        shift 2
+        ;;
+      --cursor)
+        [[ $# -ge 2 ]] || die "--cursor requires a value"
+        args+=("cursor=$2")
+        shift 2
+        ;;
+      --include-archived)
+        args+=("includeArchived=true")
+        shift
+        ;;
+      *)
+        die "unknown flags option: $1"
+        ;;
+    esac
+  done
+
+  printf '/api/1/flags%s' "$(qs "${args[@]}")"
+}
+
+build_deployments_path() {
+  local args=()
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --limit)
+        [[ $# -ge 2 ]] || die "--limit requires a value"
+        args+=("limit=$2")
+        shift 2
+        ;;
+      --cursor)
+        [[ $# -ge 2 ]] || die "--cursor requires a value"
+        args+=("cursor=$2")
+        shift 2
+        ;;
+      *)
+        die "unknown deployments option: $1"
+        ;;
+    esac
+  done
+
+  printf '/api/1/deployments%s' "$(qs "${args[@]}")"
+}
+
+cmd="${1:-}"
+[[ -n "$cmd" ]] || {
+  usage
+  exit 1
+}
+shift
+
+case "$cmd" in
+  deployments)
+    env="${1:-}"
+    [[ -n "$env" ]] || die "deployments requires an env"
+    shift
+    call_api GET "$(build_deployments_path "$@")" "$(api_key_for "$env")"
+    ;;
+  flags)
+    env="${1:-}"
+    [[ -n "$env" ]] || die "flags requires an env"
+    shift
+    call_api GET "$(build_flags_path "$@")" "$(api_key_for "$env")"
+    ;;
+  get)
+    env="${1:-}"
+    id="${2:-}"
+    [[ -n "$env" && -n "$id" ]] || die "get requires env and flag-id"
+    shift 2
+    [[ $# -eq 0 ]] || die "unexpected arguments for get"
+    call_api GET "/api/1/flags/${id}" "$(api_key_for "$env")"
+    ;;
+  versions)
+    env="${1:-}"
+    id="${2:-}"
+    [[ -n "$env" && -n "$id" ]] || die "versions requires env and flag-id"
+    shift 2
+    [[ $# -eq 0 ]] || die "unexpected arguments for versions"
+    call_api GET "/api/1/flags/${id}/versions" "$(api_key_for "$env")"
+    ;;
+  enable|disable)
+    env="${1:-}"
+    id="${2:-}"
+    [[ -n "$env" && -n "$id" ]] || die "${cmd} requires env and flag-id"
+    shift 2
+    require_yes "${1:-}"
+    [[ $# -eq 1 ]] || die "unexpected arguments for ${cmd}"
+    if [[ "$cmd" == "enable" ]]; then
+      body='{"enabled":true}'
+    else
+      body='{"enabled":false}'
+    fi
+    call_api PATCH "/api/1/flags/${id}" "$(api_key_for "$env")" "$body"
+    ;;
+  patch)
+    env="${1:-}"
+    id="${2:-}"
+    body_arg="${3:-}"
+    [[ -n "$env" && -n "$id" && -n "$body_arg" ]] || die "patch requires env, flag-id, and json"
+    shift 3
+    require_yes "${1:-}"
+    [[ $# -eq 1 ]] || die "unexpected arguments for patch"
+    call_api PATCH "/api/1/flags/${id}" "$(api_key_for "$env")" "$(json_arg "$body_arg")"
+    ;;
+  create)
+    env="${1:-}"
+    body_arg="${2:-}"
+    [[ -n "$env" && -n "$body_arg" ]] || die "create requires env and json"
+    shift 2
+    require_yes "${1:-}"
+    [[ $# -eq 1 ]] || die "unexpected arguments for create"
+    call_api POST "/api/1/flags" "$(api_key_for "$env")" "$(json_arg "$body_arg")"
+    ;;
+  add-deployment)
+    env="${1:-}"
+    id="${2:-}"
+    deployment_id="${3:-}"
+    [[ -n "$env" && -n "$id" && -n "$deployment_id" ]] || die "add-deployment requires env, flag-id, and deployment-id"
+    shift 3
+    require_yes "${1:-}"
+    [[ $# -eq 1 ]] || die "unexpected arguments for add-deployment"
+    call_api POST "/api/1/flags/${id}/deployments" "$(api_key_for "$env")" "$(jq -nc --arg id "$deployment_id" '{deployments: [$id]}')"
+    ;;
+  remove-deployment)
+    env="${1:-}"
+    id="${2:-}"
+    deployment_id="${3:-}"
+    [[ -n "$env" && -n "$id" && -n "$deployment_id" ]] || die "remove-deployment requires env, flag-id, and deployment-id"
+    shift 3
+    require_yes "${1:-}"
+    [[ $# -eq 1 ]] || die "unexpected arguments for remove-deployment"
+    call_api DELETE "/api/1/flags/${id}/deployments/${deployment_id}" "$(api_key_for "$env")"
+    ;;
+  help|-h|--help)
+    usage
+    ;;
+  *)
+    usage
+    die "unknown command: $cmd"
+    ;;
+esac

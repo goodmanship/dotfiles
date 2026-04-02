@@ -8,7 +8,7 @@
 - **Short names** - shortest names possible without ambiguity
 - **Minimal comments** - only for unexpected behavior or hidden context
 - **Single-responsibility methods** - refactor to keep interfaces clean
-- Use `uv` or `dev/exec` to run test/python commands
+- Use `uv` or `dev/exec` to run test/python commands — never `pip`
 
 ## PR Reviews
 - Check ALL unresolved comments using GraphQL `reviewThreads` (REST `/comments` doesn't show resolution status) — see `memory/feedback_pr_comments.md` for full query
@@ -54,7 +54,7 @@ Worktree naming: `<repo>-wt-<n>` (e.g., `doc-service-wt-2`)
 - **PR approvals:** Claude's git pushes can't be attributed to a GitHub user, so branch protection rules requiring "approval from someone other than the last pusher" will demand an extra approval. The user (PR author) cannot self-approve.
 - Branch names: `AN-XXXX-short-description` (Jira ticket prefix)
 - Commit messages: short and sweet, e.g. `Fix remit validation race condition` (pre-commit hook prepends ticket from branch name)
-- Before pushing, run: `uv run black .`, `uv run flake8`, `uv run pytest <modified tests>`
+- Before pushing, run: `uv run black .`, `uv run flake8`, `uv run pytest <modified tests>` (existing projects use black+flake8; new projects use ruff)
 - Before pushing a new branch, fetch and rebase onto main (`git fetch origin && git rebase origin/main`)
 - ALWAYS ask for a Jira ticket number before creating branches/commits. Never use placeholder ticket numbers like AN-XXXX - they will cause CI to fail.
 - **anatomy-core version bump**: Always bump `version` in `pyproject.toml` when making changes — dependent repos pin to specific versions via submodule
@@ -68,8 +68,7 @@ Worktree naming: `<repo>-wt-<n>` (e.g., `doc-service-wt-2`)
 - `jira issue link AN-XXXX AN-YYYY "Blocks"` - link tickets (types: Blocks, Relates, Duplicate)
 - `jira issue move AN-XXXX "In Progress"` - transition states vary by issue type (no `--no-input` flag)
 - Jira transition names ≠ target status names. Use an invalid name to discover available transitions: `jira issue move AN-XXXX "x"` → error shows options
-- Bug (API) transition chain to Dev: `Build Complete` → `Start Review` → `Approved` → `Merged` (Build → Needs Review → Under Review → Ready for Merge → Dev)
-- Feature (API) transition chain to Dev: `Build Complete` → `Start Review` → `Review Pass` → `Skip product review` → `Merged` (Build → Needs Review → Under Review → Needs Product Review → Ready for Merge → Dev)
+- Full transition chains for Bug/Feature/DROID: see `memory/jira.md`
 - `jira issue comment add AN-XXXX --template /path/to/file.txt --no-input` — for multi-line comments (heredocs can hang the CLI)
 - To delete a link: get link ID from `jira issue view AN-XXXX --raw` (parse `.fields.issuelinks[].id`), then `curl -X DELETE -u "rio@anatomy.com:${JIRA_API_TOKEN}" "https://anatomy.atlassian.net/rest/api/3/issueLink/{id}"`
 
@@ -88,6 +87,9 @@ Worktree naming: `<repo>-wt-<n>` (e.g., `doc-service-wt-2`)
 ## Scripts (~/.claude/scripts/)
 
 Credentials in `~/.secrets/credentials` (chmod 600)
+
+- `amplitude-flags`: read/write helper for Amplitude Experiment feature flags and deployments using `AMPLITUDE_MGMT_API_KEY_{DEV,STAGING,PROD}`. Read commands are safe by default; write commands require `--yes`.
+  See `memory/amplitude-flags.md` for the operating notes and common workflows.
 
 ### LLM / AI APIs
 - Microservices use **Vertex AI** for Google and Anthropic model calls, not direct API keys

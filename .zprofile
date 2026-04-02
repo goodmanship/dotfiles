@@ -1,6 +1,3 @@
-# Disable Ghostty's auto-title so we can set it manually
-export GHOSTTY_SHELL_INTEGRATION_NO_TITLE=1
-
 # Secrets (not committed to dotfiles repo)
 [[ -f ~/.env.local ]] && source ~/.env.local
 
@@ -14,6 +11,10 @@ export HOMEBREW_REPOSITORY="/opt/homebrew"
 # Config paths
 export XDG_CONFIG_HOME="$HOME/.config"
 export JIRA_CONFIG_FILE="$HOME/.config/.jira/.config.yml"
+
+# GCP Artifact Registry auth for uv
+export UV_KEYRING_PROVIDER=subprocess
+export UV_INDEX_ANATOMY_PYTHON_USERNAME=oauth2accesstoken
 
 # Mise (runtime version manager)
 if [ -f ~/.local/bin/mise ]; then

@@ -19,10 +19,17 @@ fpath=($fpath "/Users/goodmanship/.zfunctions")
 # Starship prompt
 eval "$(starship init zsh)"
 
+# ----- Boba Fetch -----
+source ~/.secrets/credentials
+export BOBA_SLACK_BOT_TOKEN BOBA_SLACK_SIGNING_SECRET NOTION_API_KEY
+
 # ----- Aliases -----
 
 # Claude
 alias clauded='claude --dangerously-skip-permissions --model opus'
+
+# GCloud
+alias gc='gcloud auth login && gcloud auth application-default login'
 
 # Ghostty
 alias gwin='~/.claude/scripts/ghostty-windows'
@@ -45,22 +52,3 @@ gt() {
 
 # ----- Functions -----
 
-# Set tab/window title
-title() {
-  printf '\e]2;%s\e\\' "$1"
-}
-
-# Pick random line from file (macOS compatible)
-_randline() {
-  awk 'BEGIN{srand()} {lines[NR]=$0} END{print lines[int(rand()*NR)+1]}' "$1"
-}
-
-# Set random EPL team as tab title
-rtitle() {
-  local name=$(_randline ~/.config/ghostty/epl-teams.txt)
-  title "$name"
-  echo "Title: $name"
-}
-
-# Auto-set random EPL team title on new tabs
-title "$(_randline ~/.config/ghostty/epl-teams.txt)"

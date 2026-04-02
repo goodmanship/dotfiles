@@ -85,7 +85,7 @@ keybind = cmd+ctrl+r=reload_config
 # 5. SHELL INTEGRATION, CLIPBOARD & SECURITY
 # ============================================================
 shell-integration = detect
-shell-integration-features = cursor,sudo,no-title
+shell-integration-features = cursor,sudo
 
 
 # Scrollback (10M lines)

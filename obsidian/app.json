@@ -6,5 +6,6 @@
   "spellcheck": false,
   "showLineNumber": false,
   "strictLineBreaks": true,
-  "vimMode": false
+  "vimMode": false,
+  "promptDelete": false
 }

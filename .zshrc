@@ -26,7 +26,7 @@ export BOBA_SLACK_BOT_TOKEN BOBA_SLACK_SIGNING_SECRET NOTION_API_KEY
 # ----- Aliases -----
 
 # Claude
-alias clauded='claude --dangerously-skip-permissions --model opus'
+alias clauded='claude --dangerously-skip-permissions --model "opus[1m]" --effort max'
 
 # GCloud
 alias gc='gcloud auth login && gcloud auth application-default login'

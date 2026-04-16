@@ -13,7 +13,7 @@ font-feature = +calt
 # 2. THEME, TRANSPARENCY & VISUAL POLISH
 # ============================================================
 # Auto-switch light/dark theme with macOS appearance
-theme = light:Catppuccin Latte,dark:Catppuccin Mocha
+theme = light:Catppuccin Latte,dark:Neon
 
 # Solid background (set background-opacity < 1 for transparency)
 background-opacity = 1

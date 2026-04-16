@@ -40,6 +40,11 @@ mkdir -p "$HOME/.config/ghostty"
 backup_and_link "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"
 backup_and_link "$DOTFILES_DIR/ghostty/epl-teams.txt" "$HOME/.config/ghostty/epl-teams.txt"
 
+# cmux config
+echo "Setting up cmux config..."
+mkdir -p "$HOME/.config/cmux"
+backup_and_link "$DOTFILES_DIR/cmux/settings.json" "$HOME/.config/cmux/settings.json"
+
 # Clean up legacy random-epl-tab.sh (now handled by shell function in .zshrc)
 if [ -e "$HOME/.config/ghostty/random-epl-tab.sh" ] || [ -L "$HOME/.config/ghostty/random-epl-tab.sh" ]; then
   echo "  Removing legacy random-epl-tab.sh"

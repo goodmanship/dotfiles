@@ -110,15 +110,57 @@
       "Bash(python3 -c \":*)",
       "Bash(python3 -m json.tool)",
       "Bash(sshpkanalytics:*)",
+      "Bash(~/.claude/scripts/rs-tunnel:*)",
+      "Bash(nc -z localhost:*)",
       "Bash(git reset:*)",
       "Bash(uvx black:*)",
       "Bash(.venv/bin/python -m pytest tests/pipeline/scatter/ -o \"addopts=\" -v)",
       "Bash(.venv/bin/python -m pytest tests/pipeline/scatter/ -o \"addopts=\" -q)",
       "Bash(python3 -c \"import sys,json; print\\(json.loads\\(sys.stdin.read\\(\\)\\)[:500]\\)\")"
     ],
-    "defaultMode": "acceptEdits"
+    "deny": [
+      "Read(*.pgpass*)",
+      "Edit(*.pgpass*)",
+      "Write(*.pgpass*)",
+      "Bash(*.pgpass*)"
+    ],
+    "defaultMode": "auto"
   },
-  "model": "opus[1m]",
+  "model": "claude-fable-5[1m]",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "gh-axi",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "chrome-devtools-axi",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "lavish-axi",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": true,
     "feature-dev@claude-plugins-official": true,
@@ -128,7 +170,9 @@
     "superpowers@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
     "deep-review@anatomy-tools": true,
-    "rfc@anatomy-tools": true
+    "rfc@anatomy-tools": true,
+    "ralph-loop@claude-plugins-official": true,
+    "anatomy-knowledge@anatomy-tools": true
   },
   "extraKnownMarketplaces": {
     "anatomy-tools": {
@@ -139,7 +183,20 @@
       "autoUpdate": true
     }
   },
+  "effortLevel": "xhigh",
+  "tui": "fullscreen",
+  "voice": {
+    "enabled": true,
+    "mode": "hold"
+  },
   "autoMemoryEnabled": true,
   "autoDreamEnabled": true,
-  "skipDangerousModePermissionPrompt": true
+  "skipDangerousModePermissionPrompt": true,
+  "skipWorkflowUsageWarning": true,
+  "theme": "light",
+  "preferredNotifChannel": "ghostty",
+  "teammateMode": "auto",
+  "agentPushNotifEnabled": true,
+  "skipAutoPermissionPrompt": true,
+  "voiceEnabled": true
 }

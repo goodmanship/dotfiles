@@ -162,17 +162,18 @@
     ]
   },
   "enabledPlugins": {
-    "code-simplifier@claude-plugins-official": true,
+    "code-simplifier@claude-plugins-official": false,
     "feature-dev@claude-plugins-official": true,
     "code-review@claude-plugins-official": true,
     "claude-md-management@claude-plugins-official": true,
     "slack@claude-plugins-official": true,
     "superpowers@claude-plugins-official": true,
     "figma@claude-plugins-official": true,
-    "deep-review@anatomy-tools": true,
     "rfc@anatomy-tools": true,
     "ralph-loop@claude-plugins-official": true,
-    "anatomy-knowledge@anatomy-tools": true
+    "anatomy-knowledge@anatomy-tools": true,
+    "argus@anatomy-tools": true,
+    "deep-review@anatomy-tools": true
   },
   "extraKnownMarketplaces": {
     "anatomy-tools": {
@@ -183,7 +184,11 @@
       "autoUpdate": true
     }
   },
-  "effortLevel": "xhigh",
+  "effortLevel": "high",
+  "statusLine": {
+    "type": "command",
+    "command": "FORCE_COLOR=1 /opt/homebrew/bin/ccusage statusline"
+  },
   "tui": "fullscreen",
   "voice": {
     "enabled": true,

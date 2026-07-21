@@ -278,16 +278,14 @@ row3=""
 # Fallback below matches Claude Code's own default (~95%) if the env var is unset.
 COMPACT_AT="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-95}"
 if [ "$remaining_pct" -ge 0 ] 2>/dev/null; then
-    compact_left=$(( COMPACT_AT - context_pct ))
-    [ "$compact_left" -lt 0 ] && compact_left=0
-    if [ "$compact_left" -le 5 ]; then
+    if [ "$context_pct" -ge $(( COMPACT_AT - 5 )) ]; then
         ctx_color="$C_RED"
-    elif [ "$compact_left" -le 20 ]; then
+    elif [ "$context_pct" -ge $(( COMPACT_AT - 20 )) ]; then
         ctx_color="$C_YEL"
     else
         ctx_color="$C_GRN"
     fi
-    row2="${ctx_color}ctx ${compact_left}% to compact${C_RST}"
+    row2="${ctx_color}ctx ${context_pct}% used${C_RST}"
 fi
 
 # Row 2: append the short-horizon (5hr session) usage next to ctx

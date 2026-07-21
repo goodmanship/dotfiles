@@ -43,6 +43,7 @@ alias sshprodold='ssh -i ~/.ssh/id_rsa -f -N -L 5433:anatomy-prod.ctk75s9hcvfr.u
 alias sshprod='ssh -fNL 5433:anatomy-prod.ctk75s9hcvfr.us-east-1.rds.amazonaws.com:5432 rio@anatomy.com@bastion.ext.anatomy.com'
 alias sshpk='pkill -f "5433:anatomy-prod"; ssh -fNL 5433:anatomy-prod.ctk75s9hcvfr.us-east-1.rds.amazonaws.com:5432 rio@anatomy.com@bastion.ext.anatomy.com -v'
 alias sshpkanalytics='pkill -f "5434:database-1"; ssh -fNL 5434:database-1-instance-1.ctk75s9hcvfr.us-east-1.rds.amazonaws.com:5432 rio@anatomy.com@bastion.ext.anatomy.com -v'
+alias sshpkrs='pkill -f "5440:analytics-prod"; ssh -fNL 5440:analytics-prod.186132748775.us-east-1.redshift-serverless.amazonaws.com:5439 rio@anatomy.com@bastion.ext.anatomy.com -v'
 
 # GCloud project shortcuts
 alias gclouddev='gcloud config set project eob-ocr-and-extraction-dev'

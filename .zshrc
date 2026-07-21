@@ -29,12 +29,17 @@ export BOBA_SLACK_BOT_TOKEN BOBA_SLACK_SIGNING_SECRET NOTION_API_KEY
 alias clauded='claude --dangerously-skip-permissions --model "opus[1m]" --effort max'
 alias claudeder='claude --dangerously-skip-permissions --model "opus[1m]" --effort max --remote-control'
 alias cdr='claude --dangerously-skip-permissions --model "opus[1m]" --effort max --remote-control'
+alias cda='claude --permission-mode auto --remote-control'
 
 # GCloud
 alias gc='gcloud auth login && gcloud auth application-default login'
 
 # Ghostty
 alias gwin='~/.claude/scripts/ghostty-windows'
+
+# Github
+alias ghopp='gh search prs --review-requested=@me --state=open --json url'
+alias ghapprove='gh pr review --approve'
 
 # Open new Ghostty window: gw [shortcut|theme]
 gw() {
@@ -54,3 +59,10 @@ gt() {
 
 # ----- Functions -----
 
+
+# bun completions
+[ -s "/Users/goodmanship/.bun/_bun" ] && source "/Users/goodmanship/.bun/_bun"
+
+# bun
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"

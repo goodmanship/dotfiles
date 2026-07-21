@@ -6,29 +6,19 @@ input=$(cat)
 # ---------------------------------------------------------------------------
 # Parse all JSON fields in a single jq call
 # ---------------------------------------------------------------------------
-IFS=$'\t' read -r model_name current_dir project_dir context_pct remaining_pct tokens_in tokens_out <<< "$(
+# NOTE: tab is whitespace to `read`, so a possibly-empty field mid-list gets
+# collapsed and shifts later fields. Keep `effort_level` (which can be empty
+# when the model has no effort param) LAST; cost is always numeric.
+IFS=$'\t' read -r model_name current_dir project_dir context_pct remaining_pct effort_level <<< "$(
     echo "$input" | jq -r '[
         .model.display_name // "Claude",
         .workspace.current_dir // "",
         .workspace.project_dir // "",
         (.context_window.used_percentage // 0 | floor),
         (.context_window.remaining_percentage // -1 | floor),
-        .context_window.current_usage.input_tokens // 0,
-        .context_window.current_usage.output_tokens // 0
+        .effort.level // ""
     ] | @tsv'
 )"
-
-# Token formatter — pure bash, no bc dependency
-fmt_k() {
-    local n=$1
-    if [ "$n" -ge 1000 ]; then
-        local int=$(( n / 1000 )) frac=$(( (n % 1000) / 100 ))
-        printf "%d.%dk" "$int" "$frac"
-    else
-        printf "%d" "$n"
-    fi
-}
-tok_str="↑$(fmt_k "$tokens_in") ↓$(fmt_k "$tokens_out")"
 
 # Git branch
 branch=$(git -C "$current_dir" --no-optional-locks branch --show-current 2>/dev/null)
@@ -47,6 +37,9 @@ if [ -n "$project_dir" ] && [[ "$current_dir" == "$project_dir"* ]]; then
     if [ -z "$dir_name" ]; then
         # At project root — show basename unless worktree (branch says it all)
         $in_worktree || dir_name=$(basename "$project_dir")
+    elif $in_worktree && [[ "$dir_name" == .worktrees/* ]]; then
+        # Worktree subdir mirrors branch name — suppress to avoid redundancy
+        dir_name=""
     fi
 elif [ -n "$current_dir" ]; then
     dir_name=$(basename "$current_dir")
@@ -65,6 +58,24 @@ C_DCYAN="${C_DIM}\033[96m"
 C_RST="\033[0m"
 C_SEP="${C_DIM} │ ${C_RST}"
 
+C_OPUS_LOW="\033[38;2;255;220;180m"
+C_OPUS_MEDIUM="\033[38;2;255;190;130m"
+C_OPUS_HIGH="\033[38;2;255;160;70m"
+C_OPUS_XHIGH="\033[38;2;255;140;20m"
+C_OPUS_MAX="\033[38;2;220;100;0m"
+
+C_SONNET_LOW="\033[38;2;255;220;235m"
+C_SONNET_MEDIUM="\033[38;2;255;190;220m"
+C_SONNET_HIGH="\033[38;2;255;150;200m"
+C_SONNET_XHIGH="\033[38;2;255;110;180m"
+C_SONNET_MAX="\033[38;2;220;60;140m"
+
+C_FABLE_LOW="\033[38;2;230;210;250m"
+C_FABLE_MEDIUM="\033[38;2;200;170;240m"
+C_FABLE_HIGH="\033[38;2;170;120;230m"
+C_FABLE_XHIGH="\033[38;2;140;70;210m"
+C_FABLE_MAX="\033[38;2;110;30;180m"
+
 color_for_pct() {
     local pct=$1
     if [ "$pct" -ge 80 ]; then printf "%s" "$C_RED"
@@ -73,36 +84,26 @@ color_for_pct() {
     fi
 }
 
-# ---------------------------------------------------------------------------
-# Progress bar with optional pacing marker
-# Uses same █ character throughout — distinguishes states via ANSI color only
-# Args: $1=pct $2=target_pct $3=width $4=fill_color (ANSI escape)
-# ---------------------------------------------------------------------------
-C_EMPTY="\033[90m"   # dark grey for empty
-C_PACE="\033[37m"    # white for pacing marker
+color_by_effort() {
+    local effort=$1 c_low=$2 c_medium=$3 c_high=$4 c_xhigh=$5 c_max=$6
+    case "$effort" in
+        low) printf "%s" "$c_low" ;;
+        medium) printf "%s" "$c_medium" ;;
+        high) printf "%s" "$c_high" ;;
+        xhigh) printf "%s" "$c_xhigh" ;;
+        max) printf "%s" "$c_max" ;;
+        *) printf "%s" "$c_medium" ;;
+    esac
+}
 
-make_bar() {
-    local pct=$1 target=${2:-} width=${3:-8} fill_color=${4:-$C_GRN}
-    local filled=$(( pct * width / 100 ))
-    [ "$pct" -gt 0 ] && [ "$filled" -eq 0 ] && filled=1
-    [ "$filled" -gt "$width" ] && filled=$width
-    local target_pos=-1
-    if [ -n "$target" ] && [ "$target" -ge 0 ] 2>/dev/null && [ "$target" -le 100 ]; then
-        target_pos=$(( target * width / 100 ))
-        [ "$target_pos" -ge "$width" ] && target_pos=$(( width - 1 ))
-    fi
-    local bar=""
-    for ((i=0; i<width; i++)); do
-        if [ "$i" -lt "$filled" ]; then
-            bar="${bar}${fill_color}█"
-        elif [ "$i" -eq "$target_pos" ]; then
-            bar="${bar}${C_PACE}█"
-        else
-            bar="${bar}${C_EMPTY}█"
-        fi
-    done
-    bar="${bar}${C_RST}"
-    printf "%s" "$bar"
+color_for_model() {
+    local name=$1 effort=$2
+    case "$name" in
+        *Opus*) color_by_effort "$effort" "$C_OPUS_LOW" "$C_OPUS_MEDIUM" "$C_OPUS_HIGH" "$C_OPUS_XHIGH" "$C_OPUS_MAX" ;;
+        *Sonnet*) color_by_effort "$effort" "$C_SONNET_LOW" "$C_SONNET_MEDIUM" "$C_SONNET_HIGH" "$C_SONNET_XHIGH" "$C_SONNET_MAX" ;;
+        *Fable*) color_by_effort "$effort" "$C_FABLE_LOW" "$C_FABLE_MEDIUM" "$C_FABLE_HIGH" "$C_FABLE_XHIGH" "$C_FABLE_MAX" ;;
+        *) printf "%s" "$C_DIM" ;;
+    esac
 }
 
 # ---------------------------------------------------------------------------
@@ -137,62 +138,117 @@ fi
 
 # ---------------------------------------------------------------------------
 # Build usage window section — reusable for 5h and 7d windows
-# Args: $1=utilization% $2=resets_at $3=window_secs $4=label $5=date_fmt
+# Args: $1=utilization% $2=resets_at $3=label $4=date_fmt
 # ---------------------------------------------------------------------------
 render_window() {
-    local usage=$1 resets_at=$2 window=$3 label=$4 date_fmt=$5
+    local usage=$1 resets_at=$2 label=$3 date_fmt=$4
     [ -z "$usage" ] && return
-    local reset_epoch target="" reset_label=""
+    local reset_epoch reset_label=""
 
     reset_epoch=$(date -juf "%Y-%m-%dT%H:%M:%S" \
         "$(echo "$resets_at" | cut -d. -f1 | sed 's/+.*//')" +%s 2>/dev/null)
 
     if [ -n "$reset_epoch" ]; then
-        local elapsed=$(( NOW_EPOCH - (reset_epoch - window) ))
-        [ "$elapsed" -lt 0 ] && elapsed=0
-        [ "$elapsed" -gt "$window" ] && elapsed=$window
-        target=$(( elapsed * 100 / window ))
-        reset_label=$(date -r "$(( (reset_epoch + 1800) / 3600 * 3600 ))" +"$date_fmt" 2>/dev/null \
+        reset_label=$(date -r "$reset_epoch" +"$date_fmt" 2>/dev/null \
             | tr '[:upper:]' '[:lower:]' | tr -d ' ')
     fi
 
-    local color bar reset_str=""
+    local color reset_str=""
     color=$(color_for_pct "$usage")
-    bar=$(make_bar "$usage" "$target" 8 "$color")
     [ -n "$reset_label" ] && reset_str="→${reset_label}"
-    printf "%s" "${color}${label}${reset_str} ${C_RST}${bar}${color} ${usage}%${C_RST}"
+    printf "%s" "${color}${label}${reset_str} ${usage}%${C_RST}"
 }
 
 # ---------------------------------------------------------------------------
 # Read all usage cache fields in a single jq call
 # ---------------------------------------------------------------------------
-usage_parts=""
+usage_now=""     # short-horizon (line 2, next to ctx): the 5-hour session
+usage_period=""  # long-horizon (line 3): weekly caps + monthly overage
 if [ -f "$USAGE_CACHE" ]; then
-    IFS=$'\t' read -r usage_5h resets_5h usage_7d resets_7d <<< "$(
-        jq -r '[
-            (.five_hour.utilization // -1 | floor),
-            .five_hour.resets_at // "",
-            (.seven_day.utilization // -1 | floor),
-            .seven_day.resets_at // ""
-        ] | @tsv' "$USAGE_CACHE" 2>/dev/null
+    # Fable's weekly-scoped sub-cap lives in .limits[] (a weekly_scoped entry
+    # with scope.model.display_name == "Fable"), NOT in .seven_day — the API
+    # exposes no per-model spend, but it does expose per-model utilization here.
+    # resets_fable is kept LAST (may be empty; read collapses empty tab fields —
+    # see top comment); usage_fable is always numeric so it's safe mid-list.
+    IFS=$'\t' read -r usage_5h resets_5h usage_7d resets_7d usage_fable resets_fable <<< "$(
+        jq -r '
+            ([.limits[]? | select(.scope.model.display_name == "Fable")][0]) as $fable |
+            [
+                (.five_hour.utilization // -1 | floor),
+                .five_hour.resets_at // "",
+                (.seven_day.utilization // -1 | floor),
+                .seven_day.resets_at // "",
+                ($fable.percent // -1 | floor),
+                ($fable.resets_at // "")
+            ] | @tsv' "$USAGE_CACHE" 2>/dev/null
     )"
 
+    # Line 2 — current 5-hour session window
     if [ "$usage_5h" -ge 0 ] 2>/dev/null && [ -n "$resets_5h" ]; then
-        usage_parts=$(render_window "$usage_5h" "$resets_5h" $((5 * 3600)) "5hr" '%-l%p')
+        usage_now=$(render_window "$usage_5h" "$resets_5h" "5hr" '%H%M')
     fi
 
+    # Line 3 — all-models weekly window
     if [ "$usage_7d" -ge 0 ] 2>/dev/null && [ -n "$resets_7d" ]; then
-        [ -n "$usage_parts" ] && usage_parts="${usage_parts}${C_SEP}"
-        usage_parts="${usage_parts}$(render_window "$usage_7d" "$resets_7d" $((7 * 86400)) "wk" '%a %-l%p')"
+        usage_period=$(render_window "$usage_7d" "$resets_7d" "wk" '%a %H%M')
+    fi
+
+    # Line 3 — Fable weekly sub-cap (model-specific, ~50% of the weekly limit).
+    if [ "$usage_fable" -ge 0 ] 2>/dev/null && [ -n "$resets_fable" ]; then
+        [ -n "$usage_period" ] && usage_period="${usage_period}${C_SEP}"
+        usage_period="${usage_period}$(render_window "$usage_fable" "$resets_fable" "fable" '%a %H%M')"
+    fi
+
+    # ---------------------------------------------------------------------------
+    # Extra-usage (overage) spend — REAL charges, unlike the notional session
+    # cost. Credits only burn once plan limits (5hr/wk) are exhausted, so this
+    # figure climbing mid-session means you're on paid overage. Monthly-cumulative
+    # against a cap; shown only when the account has extra usage enabled.
+    # amount_minor / 10^exponent = whole-dollar amount.
+    # ---------------------------------------------------------------------------
+    IFS=$'\t' read -r spend_enabled spend_pct spend_used_minor spend_used_exp spend_limit_minor spend_limit_exp <<< "$(
+        jq -r '[
+            (.spend.enabled // false),
+            (.spend.percent // 0 | floor),
+            (.spend.used.amount_minor // 0),
+            (.spend.used.exponent // 2),
+            (.spend.limit.amount_minor // 0),
+            (.spend.limit.exponent // 2)
+        ] | @tsv' "$USAGE_CACHE" 2>/dev/null
+    )"
+    if [ "$spend_enabled" = "true" ]; then
+        used_div=1; limit_div=1
+        for ((i=0; i<spend_used_exp; i++)); do used_div=$(( used_div * 10 )); done
+        for ((i=0; i<spend_limit_exp; i++)); do limit_div=$(( limit_div * 10 )); done
+        used_dollars=$(( spend_used_minor / used_div ))
+        limit_dollars=$(( spend_limit_minor / limit_div ))
+        # Compact the cap in k-notation with up to 2 decimals (resolution $10),
+        # trailing zero trimmed: 1010 -> $1.01k, 1500 -> $1.5k, 1000 -> $1k.
+        # Sub-$1000 caps stay in whole dollars (k-notation reads oddly there).
+        if [ "$limit_dollars" -lt 1000 ]; then
+            limit_str="\$${limit_dollars}"
+        else
+            k_whole=$(( limit_dollars / 1000 ))
+            k_dec=$(( (limit_dollars % 1000) / 10 ))   # hundredths of $1k = $10 units
+            if [ "$k_dec" -eq 0 ]; then
+                limit_str="\$${k_whole}k"
+            else
+                [ "$k_dec" -lt 10 ] && dec="0${k_dec}" || dec="${k_dec}"
+                dec="${dec%0}"                          # trim one trailing zero: 50->5, 20->2
+                limit_str="\$${k_whole}.${dec}k"
+            fi
+        fi
+        ovr_color=$(color_for_pct "$spend_pct")
+        [ -n "$usage_period" ] && usage_period="${usage_period}${C_SEP}"
+        usage_period="${usage_period}${ovr_color}ovr \$${used_dollars}/${limit_str} ${spend_pct}%${C_RST}"
     fi
 fi
 
 # ---------------------------------------------------------------------------
-# Compose status line
-# Single row: session info + context bar + rate-limit usage bars
+# Compose status line — single line, all segments │-delimited
 # ---------------------------------------------------------------------------
 
-# Session info: branch + dir │ model │ tokens
+# Row 1: branch + dir │ model │ tokens
 if [ -n "$branch" ] && [ -n "$dir_name" ]; then
     row1="${C_DCYAN}[${branch}] ${dir_name}${C_RST}"
 elif [ -n "$branch" ]; then
@@ -200,26 +256,28 @@ elif [ -n "$branch" ]; then
 else
     row1="${C_DCYAN}${dir_name}${C_RST}"
 fi
-# Thinking mode from settings (doesn't reflect mid-session Tab toggles)
-thinking=$(jq -r '.alwaysThinkingEnabled // false' ~/.claude/settings.json 2>/dev/null)
-if [ "$thinking" = "true" ]; then
-    think_label=" +think"
+# Reasoning effort level from the live session payload (.effort.level).
+# Absent when the model doesn't support the effort parameter.
+if [ -n "$effort_level" ]; then
+    effort_label=" ${effort_level}"
 else
-    think_label=""
+    effort_label=""
 fi
 
-row1="${row1}${C_SEP}${C_DIM}${model_name}${think_label}${C_RST}${C_SEP}${C_DIM}${tok_str}${C_RST}"
+model_color=$(color_for_model "$model_name" "$effort_level")
+row1="${row1}${C_SEP}${model_color}${model_name}${effort_label}${C_RST}"
 
-# Inline details: context bar + rate-limit usage bars
+# Row 2: context/compaction bar + short-horizon session usage (5hr)
+# Row 3: long-horizon usage — weekly caps + monthly overage
 row2=""
+row3=""
 
 # Compaction indicator
-# The API's used_percentage hits ~83% when compaction fires (200K - 33K buffer).
-# Default 80 gives a slight early-warning margin. Override with CLAUDE_AUTOCOMPACT_PCT_OVERRIDE.
-COMPACT_AT="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-80}"
+# CLAUDE_AUTOCOMPACT_PCT_OVERRIDE (set in settings.local.json) controls when
+# compaction fires, as a percentage of the full context window (1M = ~450K at 45%).
+# Fallback below matches Claude Code's own default (~95%) if the env var is unset.
+COMPACT_AT="${CLAUDE_AUTOCOMPACT_PCT_OVERRIDE:-95}"
 if [ "$remaining_pct" -ge 0 ] 2>/dev/null; then
-    compact_fill=$(( context_pct * 100 / COMPACT_AT ))
-    [ "$compact_fill" -gt 100 ] && compact_fill=100
     compact_left=$(( COMPACT_AT - context_pct ))
     [ "$compact_left" -lt 0 ] && compact_left=0
     if [ "$compact_left" -le 5 ]; then
@@ -229,19 +287,20 @@ if [ "$remaining_pct" -ge 0 ] 2>/dev/null; then
     else
         ctx_color="$C_GRN"
     fi
-    local_bar=$(make_bar "$compact_fill" "" 6 "$ctx_color")
-    row2="${ctx_color}ctx ${C_RST}${local_bar}${ctx_color} ${compact_left}%${C_RST}"
+    row2="${ctx_color}ctx ${compact_left}% to compact${C_RST}"
 fi
 
-# Append rate-limit usage bars
-if [ -n "$usage_parts" ]; then
+# Row 2: append the short-horizon (5hr session) usage next to ctx
+if [ -n "$usage_now" ]; then
     [ -n "$row2" ] && row2="${row2}${C_SEP}"
-    row2="${row2}${usage_parts}"
+    row2="${row2}${usage_now}"
 fi
+
+# Row 3: long-horizon usage (weekly caps + monthly overage)
+row3="$usage_period"
 
 # Output
-if [ -n "$row2" ]; then
-    echo -e "${row1}${C_SEP}${row2}"
-else
-    echo -e "$row1"
-fi
+line="$row1"
+[ -n "$row2" ] && line="${line}${C_SEP}${row2}"
+[ -n "$row3" ] && line="${line}${C_SEP}${row3}"
+echo -e "$line"

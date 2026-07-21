@@ -126,7 +126,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": "claude-fable-5[1m]",
+  "model": "sonnet",
   "hooks": {
     "SessionStart": [
       {
@@ -161,6 +161,10 @@
       }
     ]
   },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/scripts/statusline-command.sh"
+  },
   "enabledPlugins": {
     "code-simplifier@claude-plugins-official": false,
     "feature-dev@claude-plugins-official": true,
@@ -184,11 +188,7 @@
       "autoUpdate": true
     }
   },
-  "effortLevel": "high",
-  "statusLine": {
-    "type": "command",
-    "command": "FORCE_COLOR=1 /opt/homebrew/bin/ccusage statusline"
-  },
+  "effortLevel": "low",
   "tui": "fullscreen",
   "voice": {
     "enabled": true,
@@ -198,7 +198,7 @@
   "autoDreamEnabled": true,
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
-  "theme": "light",
+  "theme": "auto",
   "preferredNotifChannel": "ghostty",
   "teammateMode": "auto",
   "agentPushNotifEnabled": true,

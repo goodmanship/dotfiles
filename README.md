@@ -10,6 +10,8 @@ Shell configuration and scripts for macOS.
 | `.zshrc` | Interactive shell config - completion, aliases, functions, prompt | `~/.zshrc` |
 | `starship.toml` | Starship prompt configuration | `~/.config/starship.toml` |
 | `ghostty/` | Ghostty terminal config - keybinds, random EPL team tab titles | `~/.config/ghostty` |
+| `pi/settings.json` | Pi Coding Agent settings and packages | `~/.pi/agent/settings.json` |
+| `pi/mcp.json` | Pi MCP server configuration | `~/.pi/agent/mcp.json` |
 | `.gitconfig` | Git configuration (not symlinked - may contain machine-specific settings) | — |
 | `clean_room.sh` | Utility script | — |
 | `prepare-commit-msg` | Git hook | — |
@@ -27,6 +29,9 @@ ln -s ~/Dev/dotfiles/.zshrc ~/.zshrc
 mkdir -p ~/.config
 ln -s ~/Dev/dotfiles/starship.toml ~/.config/starship.toml
 ln -s ~/Dev/dotfiles/ghostty ~/.config/ghostty
+mkdir -p ~/.pi/agent
+ln -s ~/Dev/dotfiles/pi/settings.json ~/.pi/agent/settings.json
+ln -s ~/Dev/dotfiles/pi/mcp.json ~/.pi/agent/mcp.json
 
 # 3. Restart your shell or source the config
 source ~/.zprofile

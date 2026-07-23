@@ -40,6 +40,12 @@ mkdir -p "$HOME/.config/ghostty"
 backup_and_link "$DOTFILES_DIR/ghostty/config" "$HOME/.config/ghostty/config"
 backup_and_link "$DOTFILES_DIR/ghostty/epl-teams.txt" "$HOME/.config/ghostty/epl-teams.txt"
 
+# Pi Coding Agent config
+mkdir -p "$HOME/.pi/agent"
+backup_and_link "$DOTFILES_DIR/pi/settings.json" "$HOME/.pi/agent/settings.json"
+backup_and_link "$DOTFILES_DIR/pi/mcp.json" "$HOME/.pi/agent/mcp.json"
+echo ""
+
 # cmux config
 echo "Setting up cmux config..."
 mkdir -p "$HOME/.config/cmux"
